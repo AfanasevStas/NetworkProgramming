@@ -1,3 +1,4 @@
+//Client
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -14,6 +15,7 @@ using namespace std;
 void main()
 {
 	setlocale(LC_ALL, "");
+	cout << "Im - CLIENT" << endl;
 	WSAData wsaData;
 	int iResult = 0;
 	iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -41,20 +43,24 @@ void main()
 	if (connect_socket == INVALID_SOCKET)
 	{
 		cout << "SOCKET creation failed with error:\t" << WSAGetLastError() << endl;
+		freeaddrinfo(target);
 		WSACleanup();
 		return;
 	}
 
 	iResult = connect(connect_socket, target->ai_addr, target->ai_addrlen);
+	DWORD dwError = WSAGetLastError();
 	freeaddrinfo(target);
 	if (iResult == SOCKET_ERROR)
 	{
+		cout << "Eror: " << dwError << ":\t";
 		cout << "Unable to connect to server" << endl;
 		closesocket(connect_socket);
 		WSACleanup();
 		return;
 	}
-
+	cout << "Для отправки сообщения ";
+	system("PAUSE");
 	CHAR send_buffer[MTU] = "Hello Server";
 
 	iResult = send(connect_socket, send_buffer, strlen(send_buffer), 0);
