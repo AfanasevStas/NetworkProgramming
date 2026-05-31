@@ -11,10 +11,12 @@
 using namespace std;
 
 #pragma comment(lib,"WS2_32.lib")
+#pragma comment(lib,"Biblio.lib")
 #define MTU 1500
 
 void main()
 {
+	HMODULE hDLL = LoadLibrary(L"Biblio.lib");
 	setlocale(LC_ALL, "");
 	cout << "Im - SERVER" << endl;
 	WSADATA wsaData;
@@ -46,7 +48,7 @@ void main()
 	SOCKET listen_socket = socket(target->ai_family, target->ai_socktype, target->ai_protocol);
 	if (listen_socket == INVALID_SOCKET)
 	{
-		cout << "SOCKET creation failed with error: " << WSAGetLastError() << endl;
+		cout << "SOCKET creation failed with error: " << GetWSErrorMessage(WSAGetLastError()) << endl;
 		freeaddrinfo(target);
 		WSACleanup();
 		return;

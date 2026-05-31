@@ -10,6 +10,7 @@
 using namespace std;
 
 #pragma comment(lib, "WS2_32.lib")
+#pragma comment(lib, "Biblio.lib")
 #define MTU 1500
 
 void main()
