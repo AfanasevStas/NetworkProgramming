@@ -3,6 +3,7 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+#include <Header.h>
 #include<iostream>
 #include<Windows.h>
 #include<WinSock2.h>
@@ -16,7 +17,6 @@ using namespace std;
 
 void main()
 {
-	HMODULE hDLL = LoadLibrary(L"Biblio.lib");
 	setlocale(LC_ALL, "");
 	cout << "Im - SERVER" << endl;
 	WSADATA wsaData;
@@ -46,7 +46,7 @@ void main()
 	}
 
 	SOCKET listen_socket = socket(target->ai_family, target->ai_socktype, target->ai_protocol);
-	if (listen_socket == INVALID_SOCKET)
+	//if (listen_socket == INVALID_SOCKET)
 	{
 		cout << "SOCKET creation failed with error: " << GetWSErrorMessage(WSAGetLastError()) << endl;
 		freeaddrinfo(target);
