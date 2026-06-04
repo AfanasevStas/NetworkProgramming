@@ -1,4 +1,5 @@
 //Server
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -82,7 +83,10 @@ void main()
 		return;
 	}
 
-	SOCKET client_socket = accept(listen_socket, NULL, NULL);
+
+	SOCKADDR_IN client_addres;
+	INT client_adres_len = sizeof(client_addres);
+	SOCKET client_socket = accept(listen_socket, (SOCKADDR*)&client_addres, &client_adres_len);
 	if (client_socket == INVALID_SOCKET)
 	{
 		dwError = WSAGetLastError();
@@ -93,7 +97,7 @@ void main()
 		WSACleanup();
 		return;
 	}
-
+	cout << inet_ntoa(client_addres.sin_addr) << ":" << ntohs(client_addres.sin_port) << endl;
 	CHAR recv_buffer[MTU] = {};
 	CHAR send_buffer[MTU] = "Hello client!";
 	INT iReseivedBytes = 0;
