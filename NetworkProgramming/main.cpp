@@ -39,7 +39,7 @@ void main()
 	char base_port[] = "27015";
 	string choise = "";
 	cout << "Если хотите ввести IP нажмите 1: "; cin >> choise;
-	if (choise[0] == '1') { cout << "Введите IP: "; cin >> user_ip; }
+	if (choise[0] == '1') { cout << "Введите Порт: "; cin >> user_ip; }
 	else {};
 
 	choise[0] = 0;
