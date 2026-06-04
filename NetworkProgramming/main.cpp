@@ -34,10 +34,42 @@ void main()
 	addrinfo hints;
 	addrinfo* target;
 	ZeroMemory(&hints, sizeof(hints));
+	string user_ip = "", user_port = "";
+	char base_ip[] = "127.0.0.1";
+	char base_port[] = "27015";
+	string choise = "";
+	cout << "Если хотите ввести IP нажмите 1: "; cin >> choise;
+	if (choise[0] == '1') { cout << "Введите IP: "; cin >> user_ip; }
+	else {};
+
+	choise[0] = 0;
+	cout << "Если хотите ввести Порт нажмите 1: "; cin >> choise;
+	if (choise[0] == '1') { cout << "Введите Порт: "; cin >> user_port; }
+	else {};
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = IPPROTO_TCP;
-	iResult = getaddrinfo("127.0.0.1", "27015", &hints, &target);
+	if(user_ip == "" && user_port == "")iResult = getaddrinfo(base_ip, base_port, &hints, &target);
+	else if (user_ip != "" && user_port == "")
+	{
+		char user_ip_2[256];
+		strcpy(user_ip_2, user_ip.c_str());
+		iResult = getaddrinfo(user_ip_2, base_port, &hints, &target);
+	}
+	else if (user_ip == "" && user_port != "")
+	{
+		char user_port_2[256];
+		strcpy(user_port_2, user_port.c_str());
+		iResult = getaddrinfo(base_ip, user_port_2, &hints, &target);
+	}
+	else if (user_ip != "" && user_port != "")
+	{
+		char user_ip_2[256];
+		char user_port_2[256];
+		strcpy(user_ip_2, user_ip.c_str());
+		strcpy(user_port_2, user_port.c_str());
+		iResult = getaddrinfo(user_ip_2, user_port_2, &hints, &target);
+	}
 	if (iResult != 0)
 	{
 		cout << "getaddresinfo() failed with code" << iResult << endl;

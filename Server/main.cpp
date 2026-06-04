@@ -81,8 +81,13 @@ void main()
 		WSACleanup();
 		return;
 	}
+	struct sockaddr_in address;
+	address.sin_family = AF_INET;
+	address.sin_addr.s_addr = INADDR_ANY;
+	address.sin_port = htons(27015);
+	int addrlen = sizeof(address);
 
-	SOCKET client_socket = accept(listen_socket, NULL, NULL);
+	SOCKET client_socket = accept(listen_socket, (struct sockaddr*)&address, (socklen_t*)&addrlen);
 	if (client_socket == INVALID_SOCKET)
 	{
 		dwError = WSAGetLastError();
@@ -93,6 +98,11 @@ void main()
 		WSACleanup();
 		return;
 	}
+	char client_ip[INET_ADDRSTRLEN];
+	inet_ntop(AF_INET, &address.sin_addr, client_ip, INET_ADDRSTRLEN);
+	uint16_t client_port = ntohs(address.sin_port);
+	cout << "Client IP = " << client_ip
+		<< ", Client Port = " << client_port << endl;
 
 	CHAR recv_buffer[MTU] = {};
 	CHAR send_buffer[MTU] = "Hello client!";
