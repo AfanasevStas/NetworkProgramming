@@ -74,28 +74,36 @@ void main()
 	system("PAUSE");
 	CHAR send_buffer[MTU] = "Hello Server";
 
-	iResult = send(connect_socket, send_buffer, strlen(send_buffer), 0);
-	dwError = WSAGetLastError();
-	if (iResult == SOCKET_ERROR)
-	{
-		//cout << "Send failed with error: " << WSAGetLastError() << endl;
-		cout << FormatLastError(dwError, szError) << endl;
-		closesocket(connect_socket);
-		WSACleanup();
-		return;
-	}
-
-	CHAR recv_buffer[MTU] = {};
 	do
 	{
-		iResult = recv(connect_socket, recv_buffer, MTU, 0);
+		iResult = send(connect_socket, send_buffer, strlen(send_buffer), 0);
 		dwError = WSAGetLastError();
-		if (iResult > 0) cout << "Bytes received: " << iResult << "Message: " << recv_buffer << endl;
-		else if (iResult == 0)cout << "Connection closed" << endl;
-		else cout << FormatLastError(dwError, szError) << endl;
-			//cout << "Recive failed with error " << WSAGetLastError() << endl;
-	} while (iResult > 0);
+		if (iResult == SOCKET_ERROR)
+		{
+			//cout << "Send failed with error: " << WSAGetLastError() << endl;
+			cout << FormatLastError(dwError, szError) << endl;
+			closesocket(connect_socket);
+			WSACleanup();
+			return;
+		}
 
+		CHAR recv_buffer[MTU] = {};
+		//do
+		{
+			iResult = recv(connect_socket, recv_buffer, MTU, 0);
+			dwError = WSAGetLastError();
+			if (iResult > 0) cout << "Bytes received: " << iResult << "Message: " << recv_buffer << endl;
+			else if (iResult == 0)cout << "Connection closed" << endl;
+			else cout << FormatLastError(dwError, szError) << endl;
+			//cout << "Recive failed with error " << WSAGetLastError() << endl;
+		} //while (iResult > 0); 
+		ZeroMemory(send_buffer, MTU);
+		ZeroMemory(recv_buffer, MTU);
+		cout << "¬ведите сообщение: ";
+		SetConsoleCP(1251);
+		cin.getline(send_buffer, MTU);
+		SetConsoleCP(866);
+	} while (strcmp(send_buffer,"exit") != 0);
 	iResult = shutdown(connect_socket, SD_BOTH);
 	if (iResult == SOCKET_ERROR)cout << FormatLastError(WSAGetLastError(), szError) << endl;
 		//"Shotdown failed with error " << WSAGetLastError() << endl;

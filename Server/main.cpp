@@ -98,12 +98,12 @@ void main()
 		return;
 	}
 	cout << inet_ntoa(client_addres.sin_addr) << ":" << ntohs(client_addres.sin_port) << endl;
-	CHAR recv_buffer[MTU] = {};
 	CHAR send_buffer[MTU] = "Hello client!";
 	INT iReseivedBytes = 0;
 	INT iSentBytes = 0;
 	do
 	{
+		CHAR recv_buffer[MTU] = {};
 		iReseivedBytes = recv(client_socket, recv_buffer, MTU, 0);
 		if (iReseivedBytes > 0)
 		{
