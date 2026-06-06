@@ -9,6 +9,8 @@
 #include<WinSock2.h>
 #include<WS2tcpip.h>
 #include<iphlpapi.h>
+#include <thread>
+#include <vector>
 
 #include<FormatLastError.h>
 using namespace std;
@@ -16,6 +18,39 @@ using namespace std;
 #pragma comment(lib,"WS2_32.lib")
 #pragma comment(lib, "FormatLastError.lib")
 #define MTU 1500
+
+void Client_dialog(SOCKET client_socket)
+{
+	CHAR send_buffer[MTU] = "Hello client!";
+	INT iReseivedBytes = 0;
+	INT iSentBytes = 0;
+	DWORD dwError = 0;
+	CHAR szError[256] = {};
+	do
+	{
+		CHAR recv_buffer[MTU] = {};
+		iReseivedBytes = recv(client_socket, recv_buffer, MTU, 0);
+		if (iReseivedBytes > 0)
+		{
+			cout << "Received " << iReseivedBytes << " " << recv_buffer << endl;
+			iSentBytes = send(client_socket, recv_buffer, strlen(send_buffer), 0);
+			if (iSentBytes == SOCKET_ERROR)
+			{
+				dwError = WSAGetLastError();
+				cout << FormatLastError(dwError, szError) << endl;
+				//cout << "Send failed with error:\t" << WSAGetLastError() << endl;
+			}
+			else cout << iSentBytes << " Bytes sent" << endl;
+		}
+		else if (iReseivedBytes == 0) cout << "Connection closing..." << endl;
+		else
+		{
+			dwError = WSAGetLastError();
+			cout << FormatLastError(dwError, szError) << endl;
+		}
+		//cout << "Receive failed with error: " << WSAGetLastError() << endl;
+	} while (iReseivedBytes > 0);
+}
 
 void main()
 {
@@ -86,46 +121,25 @@ void main()
 
 	SOCKADDR_IN client_addres;
 	INT client_adres_len = sizeof(client_addres);
-	SOCKET client_socket = accept(listen_socket, (SOCKADDR*)&client_addres, &client_adres_len);
-	if (client_socket == INVALID_SOCKET)
+	SOCKET client_socket;
+	vector<thread> clients;
+	while (true)
 	{
-		dwError = WSAGetLastError();
-		cout << FormatLastError(dwError, szError) << endl;
-		//cout << "Accept failed with error: " << WSAGetLastError() << endl;
-		closesocket(listen_socket);
-		freeaddrinfo(target);
-		WSACleanup();
-		return;
-	}
-	cout << inet_ntoa(client_addres.sin_addr) << ":" << ntohs(client_addres.sin_port) << endl;
-	CHAR send_buffer[MTU] = "Hello client!";
-	INT iReseivedBytes = 0;
-	INT iSentBytes = 0;
-	do
-	{
-		CHAR recv_buffer[MTU] = {};
-		iReseivedBytes = recv(client_socket, recv_buffer, MTU, 0);
-		if (iReseivedBytes > 0)
-		{
-			cout << "Received " << iReseivedBytes << " " << recv_buffer << endl;
-			iSentBytes = send(client_socket, recv_buffer, strlen(send_buffer), 0);
-			if (iSentBytes == SOCKET_ERROR)
-			{
-				dwError = WSAGetLastError();
-				cout << FormatLastError(dwError, szError) << endl;
-				//cout << "Send failed with error:\t" << WSAGetLastError() << endl;
-			}
-			else cout << iSentBytes << " Bytes sent" << endl;
-		}
-		else if (iReseivedBytes == 0) cout << "Connection closing..." << endl;
-		else
+		client_socket = accept(listen_socket, (SOCKADDR*)&client_addres, &client_adres_len);
+		if (client_socket == INVALID_SOCKET)
 		{
 			dwError = WSAGetLastError();
 			cout << FormatLastError(dwError, szError) << endl;
+			//cout << "Accept failed with error: " << WSAGetLastError() << endl;
+			closesocket(listen_socket);
+			freeaddrinfo(target);
+			WSACleanup();
+			return;
 		}
-			//cout << "Receive failed with error: " << WSAGetLastError() << endl;
-	} while (iReseivedBytes > 0);
-
+		cout << inet_ntoa(client_addres.sin_addr) << ":" << ntohs(client_addres.sin_port) << endl;
+		clients.emplace_back(Client_dialog, client_socket);
+		clients.back().detach();
+	}
 	iResult = shutdown(client_socket, SD_BOTH);
 	if (iResult == SOCKET_ERROR)
 	{
