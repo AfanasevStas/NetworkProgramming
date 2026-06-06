@@ -15,7 +15,15 @@ using namespace std;
 
 #pragma comment(lib,"WS2_32.lib")
 #pragma comment(lib, "FormatLastError.lib")
-#define MTU 1500
+#define MTU				1500
+#define MAX_CONNECTIONS 3
+
+void ClientHandle(SOCKET client_socket);
+SOCKET client_sockets[MAX_CONNECTIONS] = {};
+DWORD dwThreadIDs[MAX_CONNECTIONS] = {};
+HANDLE hThreads[MAX_CONNECTIONS] = {};
+
+INT g_ActiveClients = 0;
 
 void main()
 {
@@ -84,23 +92,53 @@ void main()
 	}
 
 
-	SOCKADDR_IN client_addres;
-	INT client_adres_len = sizeof(client_addres);
-	SOCKET client_socket = accept(listen_socket, (SOCKADDR*)&client_addres, &client_adres_len);
-	if (client_socket == INVALID_SOCKET)
+	do
 	{
-		dwError = WSAGetLastError();
-		cout << FormatLastError(dwError, szError) << endl;
-		//cout << "Accept failed with error: " << WSAGetLastError() << endl;
-		closesocket(listen_socket);
-		freeaddrinfo(target);
-		WSACleanup();
-		return;
-	}
-	cout << inet_ntoa(client_addres.sin_addr) << ":" << ntohs(client_addres.sin_port) << endl;
+		SOCKADDR_IN client_addres;
+		INT client_adres_len = sizeof(client_addres);
+		SOCKET client_socket = accept(listen_socket, (SOCKADDR*)&client_addres, &client_adres_len);
+		if (client_socket == INVALID_SOCKET)
+		{
+			dwError = WSAGetLastError();
+			cout << FormatLastError(dwError, szError) << endl;
+			//cout << "Accept failed with error: " << WSAGetLastError() << endl;
+			closesocket(listen_socket);
+			freeaddrinfo(target);
+			WSACleanup();
+			return;
+		}
+
+		//ClientHandle(client_socket);
+
+		cout << inet_ntoa(client_addres.sin_addr) << ":" << ntohs(client_addres.sin_port) << endl;
+
+		client_sockets[g_ActiveClients] = client_socket;
+		hThreads[g_ActiveClients] = CreateThread
+		(
+			NULL,
+			0,
+			(LPTHREAD_START_ROUTINE)ClientHandle,
+			(LPVOID)client_socket,
+			NULL,
+			&dwThreadIDs[g_ActiveClients]
+		);
+		g_ActiveClients++;
+	} while (true);	
+	WaitForMultipleObjects(g_ActiveClients, hThreads, TRUE, INFINITE);
+
+	system("PAUSE");
+	closesocket(listen_socket);
+	freeaddrinfo(target);
+	WSACleanup();
+}
+void ClientHandle(SOCKET client_socket)
+{
 	CHAR send_buffer[MTU] = "Hello client!";
 	INT iReseivedBytes = 0;
 	INT iSentBytes = 0;
+	DWORD dwError = 0;
+	CHAR szError[256] = {};
+	INT iResult = 0;
 	do
 	{
 		CHAR recv_buffer[MTU] = {};
@@ -123,7 +161,7 @@ void main()
 			dwError = WSAGetLastError();
 			cout << FormatLastError(dwError, szError) << endl;
 		}
-			//cout << "Receive failed with error: " << WSAGetLastError() << endl;
+		//cout << "Receive failed with error: " << WSAGetLastError() << endl;
 	} while (iReseivedBytes > 0);
 
 	iResult = shutdown(client_socket, SD_BOTH);
@@ -133,8 +171,5 @@ void main()
 		cout << FormatLastError(dwError, szError) << endl;
 		//cout << "Shutdown failed with error:\t" << WSAGetLastError() << endl;
 	}
-	system("PAUSE");
-	closesocket(listen_socket);
-	freeaddrinfo(target);
-	WSACleanup();
+
 }
