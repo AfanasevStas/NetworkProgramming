@@ -9,8 +9,8 @@
 #include<WinSock2.h>
 #include<WS2tcpip.h>
 #include<iphlpapi.h>
-
 #include<FormatLastError.h>
+#include<Messagers.h>
 using namespace std;
 
 #pragma comment(lib,"WS2_32.lib")
@@ -112,17 +112,34 @@ void main()
 
 		cout << inet_ntoa(client_addres.sin_addr) << ":" << ntohs(client_addres.sin_port) << endl;
 
-		client_sockets[g_ActiveClients] = client_socket;
-		hThreads[g_ActiveClients] = CreateThread
-		(
-			NULL,
-			0,
-			(LPTHREAD_START_ROUTINE)ClientHandle,
-			(LPVOID)client_socket,
-			NULL,
-			&dwThreadIDs[g_ActiveClients]
-		);
-		g_ActiveClients++;
+		if (g_ActiveClients < MAX_CONNECTIONS)
+		{
+			client_sockets[g_ActiveClients] = client_socket;
+			hThreads[g_ActiveClients] = CreateThread
+			(
+				NULL,
+				0,
+				(LPTHREAD_START_ROUTINE)ClientHandle,
+				(LPVOID)client_socket,
+				NULL,
+				&dwThreadIDs[g_ActiveClients]
+			);
+			g_ActiveClients++;
+		}
+		else
+		{
+			iResult = send(client_socket, DECLINE_MESSAGE, strlen(DECLINE_MESSAGE),0);
+			dwError = WSAGetLastError();
+			if (iResult != 0)
+			{
+				cout << FormatLastError(dwError, szError) << endl;
+				iResult = shutdown(client_socket, SD_BOTH);
+				if (iResult != 0) cout << FormatLastError(dwError, szError) << endl; 
+				iResult = closesocket(client_socket);
+				if (iResult != 0) cout << FormatLastError(dwError, szError) << endl;
+			}
+			cout << "DECLINED" << endl;
+		}
 	} while (true);	
 	WaitForMultipleObjects(g_ActiveClients, hThreads, TRUE, INFINITE);
 

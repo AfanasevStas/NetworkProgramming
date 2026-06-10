@@ -7,6 +7,7 @@
 #include<WinSock2.h>
 #include<WS2tcpip.h>
 #include<iphlpapi.h>
+#include<Messagers.h>
 
 #include<FormatLastError.h>
 using namespace std;
@@ -73,6 +74,7 @@ void main()
 	cout << "Для отправки сообщения ";
 	system("PAUSE");
 	CHAR send_buffer[MTU] = "Hello Server";
+	CHAR recv_buffer[MTU] = {};
 
 	do
 	{
@@ -87,7 +89,7 @@ void main()
 			return;
 		}
 
-		CHAR recv_buffer[MTU] = {};
+		ZeroMemory(recv_buffer, MTU);
 		//do
 		{
 			iResult = recv(connect_socket, recv_buffer, MTU, 0);
@@ -98,12 +100,12 @@ void main()
 			//cout << "Recive failed with error " << WSAGetLastError() << endl;
 		} //while (iResult > 0); 
 		ZeroMemory(send_buffer, MTU);
-		ZeroMemory(recv_buffer, MTU);
-		cout << "Введите сообщение: ";
+		if (strcmp(recv_buffer, DECLINE_MESSAGE) != 0)cout << "Введите сообщение: ";
+		else cout << "Для выхода нажмите 'Enter'" << endl;
 		SetConsoleCP(1251);
 		cin.getline(send_buffer, MTU);
 		SetConsoleCP(866);
-	} while (strcmp(send_buffer,"exit") != 0);
+	} while (strcmp(send_buffer,"exit") != 0 && strcmp(recv_buffer, DECLINE_MESSAGE) != 0);
 	iResult = shutdown(connect_socket, SD_BOTH);
 	if (iResult == SOCKET_ERROR)cout << FormatLastError(WSAGetLastError(), szError) << endl;
 		//"Shotdown failed with error " << WSAGetLastError() << endl;
