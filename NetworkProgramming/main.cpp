@@ -71,8 +71,8 @@ void main()
 		WSACleanup();
 		return;
 	}
-	cout << "Для отправки сообщения ";
-	system("PAUSE");
+	//cout << "Для отправки сообщения ";
+	//system("PAUSE");
 	CHAR send_buffer[MTU] = "Hello Server";
 	CHAR recv_buffer[MTU] = {};
 

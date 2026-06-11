@@ -133,13 +133,15 @@ void main()
 		{
 			iResult = send(client_socket, DECLINE_MESSAGE, strlen(DECLINE_MESSAGE),0);
 			dwError = WSAGetLastError();
-			if (iResult != 0)cout << FormatLastError(dwError, szError) << endl;iResult = shutdown(client_socket, SD_BOTH);
-			if (iResult != 0) cout << FormatLastError(dwError, szError) << endl; iResult = closesocket(client_socket);
-			if (iResult != 0) cout << FormatLastError(dwError, szError) << endl;
+			if (iResult != 0)cout << FormatLastError(dwError, szError) << endl;
+			iResult = shutdown(client_socket, SD_BOTH);if (iResult != 0) cout << FormatLastError(dwError, szError) << endl; 
+			iResult = closesocket(client_socket);      if (iResult != 0) cout << FormatLastError(dwError, szError) << endl;
 			cout << "DECLINED" << endl;
 		}
 	} while (true);	
-	WaitForMultipleObjects(g_ActiveClients, hThreads, TRUE, INFINITE);
+	{
+		WaitForMultipleObjects(g_ActiveClients, hThreads, TRUE, INFINITE);
+	}
 
 	system("PAUSE");
 	closesocket(listen_socket);
