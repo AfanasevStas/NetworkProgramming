@@ -127,6 +127,7 @@ void main()
 				&dwThreadIDs[g_ActiveClients]
 			);
 			g_ActiveClients++;
+			Sleep(10);
 			ShowActiveClients();
 		}
 		else
@@ -148,7 +149,7 @@ void main()
 	freeaddrinfo(target);
 	WSACleanup();
 }
-INT GetThreadIndex(DWORD dwThreadID)
+INT GetClientIndex(DWORD dwThreadID)
 {
 	for (INT i = 0; i < g_ActiveClients; i++)
 	{
@@ -182,6 +183,15 @@ VOID ShowActiveClients()
 	cout << "Количество клиентов: " << g_ActiveClients << endl;
 	SetConsoleCursorPosition(hConsole, info.dwCursorPosition);
 }
+VOID Broadcast(CHAR szMessage[], INT client_index)
+{
+	INT iResult = 0;
+	for (INT i = 0; i < g_ActiveClients; i++)
+	{
+		if (i != client_index)
+			iResult = send(client_sockets[i], szMessage, strlen(szMessage), 0);
+	}
+}
 void ClientHandle(SOCKET client_socket)
 {
 	CHAR send_buffer[MTU] = "Hello client!";
@@ -197,22 +207,23 @@ void ClientHandle(SOCKET client_socket)
 		iReseivedBytes = recv(client_socket, recv_buffer, MTU, 0);
 		if (iReseivedBytes > 0)
 		{
-			cout << "Received " << iReseivedBytes << " " << recv_buffer << endl;
-			iSentBytes = send(client_socket, recv_buffer, strlen(send_buffer), 0);
-			if (iSentBytes == SOCKET_ERROR)
-			{
-				dwError = WSAGetLastError();
-				cout << FormatLastError(dwError, szError) << endl;
-				//cout << "Send failed with error:\t" << WSAGetLastError() << endl;
-			}
-			else cout << iSentBytes << " Bytes sent" << endl;
+			//cout << "Received " << iReseivedBytes << " " << recv_buffer << endl;
+			//iSentBytes = send(client_socket, recv_buffer, strlen(send_buffer), 0);
+			//if (iSentBytes == SOCKET_ERROR)
+			//{
+			//	dwError = WSAGetLastError();
+			//	cout << FormatLastError(dwError, szError) << endl;
+			//	//cout << "Send failed with error:\t" << WSAGetLastError() << endl;
+			//}
+			//else cout << iSentBytes << " Bytes sent" << endl;
+			Broadcast(recv_buffer, GetClientIndex(GetCurrentThreadId()));
 		}
 		//else if (iReseivedBytes == 0) cout << "Connection closing..." << endl;
-		else
-		{
-			dwError = WSAGetLastError();
-			cout << FormatLastError(dwError, szError) << endl;
-		}
+		//else
+		//{
+		//	dwError = WSAGetLastError();
+		//	cout << FormatLastError(dwError, szError) << endl;
+		//}
 		//cout << "Receive failed with error: " << WSAGetLastError() << endl;
 	} while (iReseivedBytes > 0 && strcmp(recv_buffer, "exit") != 0);
 
@@ -224,7 +235,7 @@ void ClientHandle(SOCKET client_socket)
 		//cout << "Shutdown failed with error:\t" << WSAGetLastError() << endl;
 	}
 	closesocket(client_socket);
-	Shift(GetThreadIndex(GetCurrentThreadId()));
+	Shift(GetClientIndex(GetCurrentThreadId()));
 	ShowActiveClients();
 	ExitThread(0);
 }
