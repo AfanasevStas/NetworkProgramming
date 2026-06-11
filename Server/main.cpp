@@ -18,7 +18,9 @@ using namespace std;
 #define MTU				1500
 #define MAX_CONNECTIONS 3
 
+void ShowActiveClients();
 void ClientHandle(SOCKET client_socket);
+
 SOCKET client_sockets[MAX_CONNECTIONS] = {};
 DWORD dwThreadIDs[MAX_CONNECTIONS] = {};
 HANDLE hThreads[MAX_CONNECTIONS] = {};
@@ -125,19 +127,15 @@ void main()
 				&dwThreadIDs[g_ActiveClients]
 			);
 			g_ActiveClients++;
+			ShowActiveClients();
 		}
 		else
 		{
 			iResult = send(client_socket, DECLINE_MESSAGE, strlen(DECLINE_MESSAGE),0);
 			dwError = WSAGetLastError();
-			if (iResult != 0)
-			{
-				cout << FormatLastError(dwError, szError) << endl;
-				iResult = shutdown(client_socket, SD_BOTH);
-				if (iResult != 0) cout << FormatLastError(dwError, szError) << endl; 
-				iResult = closesocket(client_socket);
-				if (iResult != 0) cout << FormatLastError(dwError, szError) << endl;
-			}
+			if (iResult != 0)cout << FormatLastError(dwError, szError) << endl;iResult = shutdown(client_socket, SD_BOTH);
+			if (iResult != 0) cout << FormatLastError(dwError, szError) << endl; iResult = closesocket(client_socket);
+			if (iResult != 0) cout << FormatLastError(dwError, szError) << endl;
 			cout << "DECLINED" << endl;
 		}
 	} while (true);	
@@ -148,9 +146,44 @@ void main()
 	freeaddrinfo(target);
 	WSACleanup();
 }
+INT GetThreadIndex(DWORD dwThreadID)
+{
+	for (INT i = 0; i < g_ActiveClients; i++)
+	{
+		if(dwThreadID == dwThreadIDs[i])return i;
+	}
+	return -1;
+}
+VOID Shift(INT index)
+{
+	if (index == -1)return;
+	CloseHandle(hThreads[index]);
+	for (INT i = index; i < g_ActiveClients; i++)
+	{
+		client_sockets[i] = client_sockets[i + 1];
+		dwThreadIDs[i] = dwThreadIDs[i + 1];
+		hThreads[i] = hThreads[i + 1];
+	}
+	client_sockets[MAX_CONNECTIONS - 1] = NULL;
+	dwThreadIDs[MAX_CONNECTIONS - 1] = NULL;
+	hThreads[MAX_CONNECTIONS - 1] = NULL;
+	g_ActiveClients--;
+}
+VOID ShowActiveClients()
+{
+	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+	CONSOLE_SCREEN_BUFFER_INFO info;
+	GetConsoleScreenBufferInfo(hConsole, &info);
+	SetConsoleCursorPosition(hConsole, { 25,0 });
+	cout << "";
+	SetConsoleCursorPosition(hConsole, { 25,0 });
+	cout << "Количество клиентов: " << g_ActiveClients << endl;
+	SetConsoleCursorPosition(hConsole, info.dwCursorPosition);
+}
 void ClientHandle(SOCKET client_socket)
 {
 	CHAR send_buffer[MTU] = "Hello client!";
+	CHAR recv_buffer[MTU] = {};
 	INT iReseivedBytes = 0;
 	INT iSentBytes = 0;
 	DWORD dwError = 0;
@@ -158,7 +191,7 @@ void ClientHandle(SOCKET client_socket)
 	INT iResult = 0;
 	do
 	{
-		CHAR recv_buffer[MTU] = {};
+		ZeroMemory(recv_buffer, MTU);
 		iReseivedBytes = recv(client_socket, recv_buffer, MTU, 0);
 		if (iReseivedBytes > 0)
 		{
@@ -172,14 +205,14 @@ void ClientHandle(SOCKET client_socket)
 			}
 			else cout << iSentBytes << " Bytes sent" << endl;
 		}
-		else if (iReseivedBytes == 0) cout << "Connection closing..." << endl;
+		//else if (iReseivedBytes == 0) cout << "Connection closing..." << endl;
 		else
 		{
 			dwError = WSAGetLastError();
 			cout << FormatLastError(dwError, szError) << endl;
 		}
 		//cout << "Receive failed with error: " << WSAGetLastError() << endl;
-	} while (iReseivedBytes > 0);
+	} while (iReseivedBytes > 0 && strcmp(recv_buffer, "exit") != 0);
 
 	iResult = shutdown(client_socket, SD_BOTH);
 	if (iResult == SOCKET_ERROR)
@@ -188,5 +221,8 @@ void ClientHandle(SOCKET client_socket)
 		cout << FormatLastError(dwError, szError) << endl;
 		//cout << "Shutdown failed with error:\t" << WSAGetLastError() << endl;
 	}
-
+	closesocket(client_socket);
+	Shift(GetThreadIndex(GetCurrentThreadId()));
+	ShowActiveClients();
+	ExitThread(0);
 }

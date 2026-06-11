@@ -106,6 +106,7 @@ void main()
 		cin.getline(send_buffer, MTU);
 		SetConsoleCP(866);
 	} while (strcmp(send_buffer,"exit") != 0 && strcmp(recv_buffer, DECLINE_MESSAGE) != 0);
+	
 	iResult = shutdown(connect_socket, SD_BOTH);
 	if (iResult == SOCKET_ERROR)cout << FormatLastError(WSAGetLastError(), szError) << endl;
 		//"Shotdown failed with error " << WSAGetLastError() << endl;
