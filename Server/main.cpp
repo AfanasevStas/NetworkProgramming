@@ -5,6 +5,8 @@
 #endif
 
 #include<iostream>
+#include <mutex>
+#include <string>
 #include<Windows.h>
 #include<WinSock2.h>
 #include<WS2tcpip.h>
@@ -25,7 +27,9 @@ SOCKET client_sockets[MAX_CONNECTIONS] = {};
 DWORD dwThreadIDs[MAX_CONNECTIONS] = {};
 HANDLE hThreads[MAX_CONNECTIONS] = {};
 
+
 INT g_ActiveClients = 0;
+SOCKADDR_IN client_addres;
 
 void main()
 {
@@ -96,7 +100,7 @@ void main()
 
 	do
 	{
-		SOCKADDR_IN client_addres;
+		
 		INT client_adres_len = sizeof(client_addres);
 		SOCKET client_socket = accept(listen_socket, (SOCKADDR*)&client_addres, &client_adres_len);
 		if (client_socket == INVALID_SOCKET)
@@ -113,6 +117,7 @@ void main()
 		//ClientHandle(client_socket);
 
 		cout << inet_ntoa(client_addres.sin_addr) << ":" << ntohs(client_addres.sin_port) << endl;
+		
 
 		if (g_ActiveClients < MAX_CONNECTIONS)
 		{
@@ -201,6 +206,12 @@ void ClientHandle(SOCKET client_socket)
 	DWORD dwError = 0;
 	CHAR szError[256] = {};
 	INT iResult = 0;
+	mutex mut;
+	string new_recv_buffer;
+	SOCKADDR_IN client_addreS = client_addres;
+	;
+
+	mut.lock();
 	do
 	{
 		ZeroMemory(recv_buffer, MTU);
@@ -216,6 +227,9 @@ void ClientHandle(SOCKET client_socket)
 			//	//cout << "Send failed with error:\t" << WSAGetLastError() << endl;
 			//}
 			//else cout << iSentBytes << " Bytes sent" << endl;
+			new_recv_buffer = string(inet_ntoa(client_addres.sin_addr)) + ':' + to_string(ntohs(client_addres.sin_port)) + ' ' + string(recv_buffer);
+			new_recv_buffer.copy(recv_buffer, new_recv_buffer.size());
+			recv_buffer[new_recv_buffer.size()] = '\0';
 			Broadcast(recv_buffer, GetClientIndex(GetCurrentThreadId()));
 		}
 		//else if (iReseivedBytes == 0) cout << "Connection closing..." << endl;
@@ -234,6 +248,7 @@ void ClientHandle(SOCKET client_socket)
 		cout << FormatLastError(dwError, szError) << endl;
 		//cout << "Shutdown failed with error:\t" << WSAGetLastError() << endl;
 	}
+	mut.unlock();
 	closesocket(client_socket);
 	Shift(GetClientIndex(GetCurrentThreadId()));
 	ShowActiveClients();
