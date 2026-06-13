@@ -105,6 +105,7 @@ void main()
 		if (strcmp(recv_buffer, DECLINE_MESSAGE) != 0)cout << "Введите сообщение: ";
 		else cout << "Для выхода нажмите 'Enter'" << endl;
 		SetConsoleCP(1251);
+
 		cin.getline(send_buffer, MTU);
 		SetConsoleCP(866);
 	} while (strcmp(send_buffer,"exit") != 0 && strcmp(recv_buffer, DECLINE_MESSAGE) != 0);

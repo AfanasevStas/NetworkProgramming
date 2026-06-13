@@ -209,7 +209,6 @@ void ClientHandle(SOCKET client_socket)
 	mutex mut;
 	string new_recv_buffer;
 	SOCKADDR_IN client_addreS = client_addres;
-	;
 
 	mut.lock();
 	do
