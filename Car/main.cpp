@@ -1,5 +1,7 @@
 #include<iostream>
+#include<Windows.h>
 #include<conio.h>
+#include <thread>
 
 using namespace std;
 #define Escape 27
@@ -22,7 +24,7 @@ public:
 		)
 	{
 		//this->CAPACITY = capacity;
-		this->fuel_level = 0;
+		this->fuel_level = CAPACITY;
 		cout << "Tank is ready " << this << endl;
 	}
 	~Tank()
@@ -79,6 +81,10 @@ public:
 		cout << "Consumption:\t" << CONSUMPTION << " liters/km.\n";
 		cout << "Consumption per sec:" << consumption_per_second << " liters/sec.\n";
 	}
+	double Get_consumption_per_second()const
+	{
+		return consumption_per_second;
+	}
 };
 
 class Car
@@ -86,11 +92,13 @@ class Car
 	Engine engine;
 	Tank tank;
 	bool driver_inside;
+	bool check_i;
 public:
 	Car(double cunsumtion, int capacity = 50) :engine(cunsumtion), tank(capacity)
 	{
 		driver_inside = false;
-		cout << "Your car is ready to go, press Enter to go in" << this << endl;
+		check_i = false;
+		cout << "Your car is ready to go, press Enter to go in " << this << endl;
 	}
 	~Car()
 	{
@@ -101,13 +109,17 @@ public:
 		while (driver_inside)
 		{
 			system("CLS");
+			if (check_i == true)
+			tank.give_fuel(engine.Get_consumption_per_second());
 			cout << "Fuel level: " << tank.get_fuel_level() << " liters.\n";
+			Sleep(500);
 		}
 	}
 	void get_in()
 	{
 		driver_inside = true;
-		panel();
+		thread t(&Car::panel, this);
+		t.detach();
 	}
 	void get_out()
 	{
@@ -125,6 +137,8 @@ public:
 				if (driver_inside)get_out();
 				else get_in();
 				break;
+			case 'i':
+				check_i = (check_i ? false : true);
 			}
 		} while (key != Escape);
 	}
