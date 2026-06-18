@@ -1,7 +1,11 @@
+#include<Windows.h>
 #include<iostream>
 #include<conio.h>
+#include<chrono>
+#include<thread>
 
 using namespace std;
+using namespace std::chrono_literals;
 #define Escape 27
 #define Enter 13
 
@@ -29,7 +33,7 @@ public:
 	{
 		cout << "Tank is over " << this << endl;
 	}
-	void fill(int amount)
+	void fill(double amount)
 	{
 		if (amount < 0) return;
 		fuel_level += amount;
@@ -59,6 +63,7 @@ class Engine
 {
 	const double CONSUMPTION;
 	double consumption_per_second;
+	bool is_started;
 public:
 	Engine(double consumption) : CONSUMPTION
 	(
@@ -68,16 +73,33 @@ public:
 	)
 	{
 		consumption_per_second = CONSUMPTION * 3e-5;
+		is_started = false;
 		cout << "Engine is ready:\t" << this << endl;
 	}
 	~Engine()
 	{
 		cout << "Engine is over:\t" << this << endl;
 	}
+	void start()
+	{
+		is_started = true;
+	}
+	void stop()
+	{
+		is_started = false;
+	}
+	bool started()
+	{
+		return is_started;
+	}
 	void info()const
 	{
 		cout << "Consumption:\t" << CONSUMPTION << " liters/km.\n";
 		cout << "Consumption per sec:" << consumption_per_second << " liters/sec.\n";
+	}
+	double get_consumption_per_second()
+	{
+		return consumption_per_second;
 	}
 };
 
@@ -86,6 +108,11 @@ class Car
 	Engine engine;
 	Tank tank;
 	bool driver_inside;
+	struct
+	{
+		thread panel_thread;
+		thread engine_idle_thread;
+	}car_threads;
 public:
 	Car(double cunsumtion, int capacity = 50) :engine(cunsumtion), tank(capacity)
 	{
@@ -96,22 +123,55 @@ public:
 	{
 		cout << "Car is over: " << this << endl;
 	}
+	void engine_idle()
+	{
+		while (engine.started() && tank.give_fuel(engine.get_consumption_per_second()))
+			this_thread::sleep_for(1s);
+	}
 	void panel()
 	{
+		HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 		while (driver_inside)
 		{
 			system("CLS");
-			cout << "Fuel level: " << tank.get_fuel_level() << " liters.\n";
+			cout << "Fuel level: " << tank.get_fuel_level() << " liters.\t";
+			if (tank.get_fuel_level() < 5)
+			{
+				SetConsoleTextAttribute(hConsole, 0x4F);
+				cout << " LOW FUEL ";
+				SetConsoleTextAttribute(hConsole, 0x07);
+			}
+			cout << "Engine is " << (engine.started() ? "started" : "stopped") << endl;
+			this_thread::sleep_for(100ms);
 		}
 	}
 	void get_in()
 	{
 		driver_inside = true;
-		panel();
+		//panel();
+		if (!car_threads.panel_thread.joinable())car_threads.panel_thread = thread(&Car::panel, this);
 	}
 	void get_out()
 	{
 		driver_inside = false;
+		if (car_threads.panel_thread.joinable())car_threads.panel_thread.join();
+		system("CLS");
+		cout << "You are out of the car" << endl;
+	}
+	void startup()
+	{
+		if (tank.give_fuel(0))
+		{
+			engine.start();
+			if(!car_threads.engine_idle_thread.joinable())
+			car_threads.engine_idle_thread = thread(&Car::engine_idle, this);
+		}
+	}
+	void shutdown()
+	{
+		engine.stop();
+		if (car_threads.engine_idle_thread.joinable())
+			car_threads.engine_idle_thread.join();
 	}
 	void control()
 	{
@@ -125,7 +185,26 @@ public:
 				if (driver_inside)get_out();
 				else get_in();
 				break;
+			case 'F':
+			case 'f':
+				if (!driver_inside && !engine.started())
+				{
+					double amount;
+					cout << "Введите объём топлива: "; cin >> amount;
+					tank.fill(amount);
+				}
+				else cout << "Нужно заглушить двигатель и выйти из машины, у нас самообслуживание" << endl;
+				break;
+			case 'I':
+			case 'i':
+				if (!engine.started())startup();
+				else shutdown();
+				break;
+			case Escape:
+				shutdown();
+				get_out();
 			}
+
 		} while (key != Escape);
 	}
 };
