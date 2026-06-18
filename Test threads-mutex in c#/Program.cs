@@ -18,7 +18,7 @@ class Program
 
         }
     }
-        static void Plus()
+    static void Plus()
     {
         while (true)
         {
