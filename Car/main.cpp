@@ -178,7 +178,8 @@ public:
 		char key = 0;
 		do
 		{
-			key = _getch();
+			key = 0;
+			if(_kbhit())key = _getch();
 			switch (key)
 			{
 			case Enter:
@@ -197,14 +198,15 @@ public:
 				break;
 			case 'I':
 			case 'i':
-				if (!engine.started())startup();
+				if (driver_inside && !engine.started())startup();
+				else if (driver_inside)shutdown();
 				else shutdown();
 				break;
 			case Escape:
 				shutdown();
 				get_out();
 			}
-
+			if (tank.get_fuel_level() == 0 && engine.started())shutdown();
 		} while (key != Escape);
 	}
 };
