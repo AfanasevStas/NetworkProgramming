@@ -157,7 +157,6 @@ public:
 			if (speed_now = 0) check_speed = 0;
 			if (speed_now > 0)
 			{
-				speed_now--;
 				if (speed_now > 0 && speed_now < 61) check_speed = 1;
 				if (speed_now > 60 && speed_now < 101) check_speed = 2;
 				if (speed_now > 100 && speed_now < 141) check_speed = 3;
@@ -206,6 +205,7 @@ public:
 			cout << "Engine is " << (engine.started() ? "started" : "stopped") << endl;
 			
 			cout << "Speed is now: ";
+			if(check_speed > 0 && speed_now > 0)speed_now--;
 			for (int i = 0; i < 9; i++)
 			{
 				cout << " ";
