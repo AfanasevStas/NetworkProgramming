@@ -131,19 +131,37 @@ public:
 	void panel()
 	{
 		HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+		CONSOLE_CURSOR_INFO cursore_info;
+		GetConsoleCursorInfo(hConsole, &cursore_info);
+		cursore_info.bVisible = FALSE;
+		SetConsoleCursorInfo(hConsole, &cursore_info);
+		CONSOLE_SCREEN_BUFFER_INFO current_state;
+		GetConsoleScreenBufferInfo(hConsole, &current_state);
+		system("CLS");
+
+		cout << "Fuel level: " << endl;
+		cout << "Engine is " << endl;
 		while (driver_inside)
 		{
-			system("CLS");
-			cout << "Fuel level: " << tank.get_fuel_level() << " liters.\t";
+			SetConsoleCursorPosition(hConsole, COORD{ 12,0 });
+			cout << tank.get_fuel_level();
+			//system("CLS");
+			//cout << "Fuel level: " << tank.get_fuel_level() << " liters.\t";
 			if (tank.get_fuel_level() < 5)
 			{
+				SetConsoleCursorPosition(hConsole, COORD{ 32,0 });
+
 				SetConsoleTextAttribute(hConsole, 0x4F);
 				cout << " LOW FUEL ";
 				SetConsoleTextAttribute(hConsole, 0x07);
 			}
-			cout << "Engine is " << (engine.started() ? "started" : "stopped") << endl;
+			SetConsoleCursorPosition(hConsole, COORD{ 12,1 });
+			cout << (engine.started() ? "started" : "stopped");
+			//cout << "Engine is " << (engine.started() ? "started" : "stopped") << endl;
 			this_thread::sleep_for(100ms);
 		}
+		cursore_info.bVisible = FALSE;
+		SetConsoleCursorInfo(hConsole, &cursore_info);
 	}
 	void get_in()
 	{
@@ -194,7 +212,7 @@ public:
 					cout << "Введите объём топлива: "; cin >> amount;
 					tank.fill(amount);
 				}
-				else cout << "Нужно заглушить двигатель и выйти из машины, у нас самообслуживание" << endl;
+				else cout << "\nНужно заглушить двигатель и выйти из машины, у нас самообслуживание" << endl;
 				break;
 			case 'I':
 			case 'i':
