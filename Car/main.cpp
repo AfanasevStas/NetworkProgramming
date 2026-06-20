@@ -72,6 +72,7 @@ public:
 		consumption
 	)
 	{
+
 		consumption_per_second = CONSUMPTION * 3e-5;
 		is_started = false;
 		cout << "Engine is ready:\t" << this << endl;
@@ -79,6 +80,10 @@ public:
 	~Engine()
 	{
 		cout << "Engine is over:\t" << this << endl;
+	}
+	void set_consumption_per_second(double speed)
+	{
+		consumption_per_second = speed;
 	}
 	void start()
 	{
@@ -108,16 +113,21 @@ class Car
 	Engine engine;
 	Tank tank;
 	bool driver_inside;
+	int speed_now;
+	int check_speed;
 	struct
 	{
 		thread panel_thread;
 		thread engine_idle_thread;
+		thread speed_thread;
 	}car_threads;
 public:
 	Car(double cunsumtion, int capacity = 50) :engine(cunsumtion), tank(capacity)
 	{
 		driver_inside = false;
-		cout << "Your car is ready to go, press Enter to go in" << this << endl;
+		speed_now = 0;
+		check_speed = 0;
+		cout << "Your car is ready to go, press Enter to go in " << this << endl;
 	}
 	~Car()
 	{
@@ -128,13 +138,65 @@ public:
 		while (engine.started() && tank.give_fuel(engine.get_consumption_per_second()))
 			this_thread::sleep_for(1s);
 	}
+	void speed_controle()
+	{
+		//HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+		//int x = 0;
+		//int y = 1;
+		//COORD coord{ x, y };
+
+		//CONSOLE_CURSOR_INFO cursorInfo;
+		//GetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);
+		//cursorInfo.bVisible = false;
+		//SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);
+
+		while (driver_inside)
+		{
+			//SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
+			//cout << "Speed is now: " << speed_now << " km/h.";
+			if (speed_now = 0) check_speed = 0;
+			if (speed_now > 0)
+			{
+				speed_now--;
+				if (speed_now > 0 && speed_now < 61) check_speed = 1;
+				if (speed_now > 60 && speed_now < 101) check_speed = 2;
+				if (speed_now > 100 && speed_now < 141) check_speed = 3;
+				if (speed_now > 140 && speed_now < 201) check_speed = 4;
+				if (speed_now > 200 && speed_now < 251) check_speed = 5;
+			}
+			//for (int i = 0; i < 23; i++)
+			//{
+			//	cout << " ";
+			//}
+			this_thread::sleep_for(100ms);
+		}
+
+	}
 	void panel()
 	{
 		HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+		int x = 0;
+		int y = 0;
+		int x_2 = 15;
+		int y_2 = 1;
+		COORD coord{ x, y };
+		COORD coord_2{ x_2, y_2 };
+		system("CLS");
+
+
+		CONSOLE_CURSOR_INFO cursorInfo;
+		GetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);
+		cursorInfo.bVisible = false;
+		SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);
+
 		while (driver_inside)
 		{
-			system("CLS");
-			cout << "Fuel level: " << tank.get_fuel_level() << " liters.\t";
+			SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
+			cout << "Fuel level: " << tank.get_fuel_level() << " liters.";
+			for (int i = 0; i < 6; i++)
+			{
+				cout << " ";
+			}
 			if (tank.get_fuel_level() < 5)
 			{
 				SetConsoleTextAttribute(hConsole, 0x4F);
@@ -142,6 +204,19 @@ public:
 				SetConsoleTextAttribute(hConsole, 0x07);
 			}
 			cout << "Engine is " << (engine.started() ? "started" : "stopped") << endl;
+			
+			cout << "Speed is now: ";
+			for (int i = 0; i < 9; i++)
+			{
+				cout << " ";
+			}
+			SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord_2);
+			cout << speed_now << " km/h.";
+			for (int i = 0; i < 3; i++)
+			{
+				cout << " ";
+			}
+
 			this_thread::sleep_for(100ms);
 		}
 	}
@@ -150,6 +225,7 @@ public:
 		driver_inside = true;
 		//panel();
 		if (!car_threads.panel_thread.joinable())car_threads.panel_thread = thread(&Car::panel, this);
+		if (!car_threads.panel_thread.joinable())car_threads.speed_thread = thread(&Car::speed_controle, this);
 	}
 	void get_out()
 	{
@@ -201,6 +277,72 @@ public:
 				if (driver_inside && !engine.started())startup();
 				else if (driver_inside)shutdown();
 				else shutdown();
+				break;
+			case 'W':
+			case 'w':
+				if (check_speed > 5) check_speed = 5;
+				else
+				{
+					check_speed++;
+					switch (check_speed)
+					{
+					case 1:
+						speed_now = 60;
+						engine.set_consumption_per_second(0.0020);
+						break;
+					case 2:
+						speed_now = 100;
+						engine.set_consumption_per_second(0.0014);
+						break;
+					case 3:
+						speed_now = 140;
+						engine.set_consumption_per_second(0.0020);
+						break;
+					case 4:
+						speed_now = 200;
+						engine.set_consumption_per_second(0.0025);
+						break;
+					case 5:
+						speed_now = 250;
+						engine.set_consumption_per_second(0.0030);
+						break;
+					}
+				}
+				break;
+			case 'S':
+			case 's':
+				if (check_speed < 0) check_speed = 0;
+				else
+				{
+					check_speed--;
+					switch (check_speed)
+					{
+					case 0:
+						speed_now = 0;
+						engine.set_consumption_per_second(0.0000);
+						break;
+					case 1:
+						speed_now = 60;
+						engine.set_consumption_per_second(0.0020);
+						break;
+					case 2:
+						speed_now = 100;
+						engine.set_consumption_per_second(0.0014);
+						break;
+					case 3:
+						speed_now = 140;
+						engine.set_consumption_per_second(0.0020);
+						break;
+					case 4:
+						speed_now = 200;
+						engine.set_consumption_per_second(0.0025);
+						break;
+					case 5:
+						speed_now = 250;
+						engine.set_consumption_per_second(0.0030);
+						break;
+					}
+				}
 				break;
 			case Escape:
 				shutdown();
