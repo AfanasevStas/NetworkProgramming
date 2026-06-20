@@ -10,8 +10,10 @@ using namespace std::chrono_literals;
 #define Escape 27
 #define Enter 13
 
-#define MIN_TANK_CAPACITY  20
-#define MAX_TANK_CAPACITY  120
+#define MIN_TANK_CAPACITY		20
+#define MAX_TANK_CAPACITY		120
+#define MAX_SPEED_LOW_LIMIT		60
+#define MAX_SPEED_HIGH_LIMIT	400
 
 class Tank
 {
@@ -109,15 +111,27 @@ class Car
 	Engine engine;
 	Tank tank;
 	bool driver_inside;
+	const int MAX_SPEED;
+	int speed;
+	int acceleration;
 	struct
 	{
 		mutex mutex;
 		thread panel_thread;
 		thread engine_idle_thread;
+		thread free_wheeling_thread;
 	}car_threads;
 public:
-	Car(double cunsumtion, int capacity = 50) :engine(cunsumtion), tank(capacity)
+	Car(double cunsumtion, int capacity = 50, int max_speed=250) :engine(cunsumtion), tank(capacity),
+		MAX_SPEED
+		(
+			max_speed < MAX_SPEED_LOW_LIMIT ? MAX_SPEED_HIGH_LIMIT:
+			max_speed > MAX_SPEED_LOW_LIMIT ? MAX_SPEED_HIGH_LIMIT:
+			max_speed
+		)
 	{
+		speed = 0;
+		acceleration = MAX_SPEED / 10;
 		driver_inside = false;
 		cout << "Your car is ready to go, press Enter to go in" << this << endl;
 	}
@@ -143,6 +157,7 @@ public:
 
 		cout << "Fuel level: " << endl;
 		cout << "Engine is " << endl;
+		cout << "Speed: " << endl;
 		while (driver_inside)
 		{
 			car_threads.mutex.lock();
@@ -160,6 +175,9 @@ public:
 			}
 			SetConsoleCursorPosition(hConsole, COORD{ 12,1 });
 			cout << (engine.started() ? "started" : "stopped");
+			SetConsoleCursorPosition(hConsole, COORD{ 12,2 });
+			cout.width(4);
+			cout << speed << " km/h";
 			//cout << "Engine is " << (engine.started() ? "started" : "stopped") << endl;
 			this_thread::sleep_for(100ms);
 			car_threads.mutex.unlock();
@@ -195,6 +213,37 @@ public:
 		if (car_threads.engine_idle_thread.joinable())
 			car_threads.engine_idle_thread.join();
 	}
+	void accelerate()
+	{
+		if (engine.started())
+		{
+			speed += acceleration;
+			if (speed > MAX_SPEED)speed = MAX_SPEED;
+			if (!car_threads.free_wheeling_thread.joinable())car_threads.free_wheeling_thread = 
+				thread(&Car::free_wheeling, this);
+			this_thread::sleep_for(1s);
+		}
+	}
+	void slow_down()
+	{
+		if (speed > 0)
+		{
+			speed -= acceleration;
+			if (speed < 0)speed = 0;
+			if (speed == 0 && car_threads.free_wheeling_thread.joinable())
+				car_threads.free_wheeling_thread.join();
+			this_thread::sleep_for(1s);
+		}
+	}
+	void free_wheeling()
+	{
+		while (speed > 0)
+		{
+			speed--;
+			//if (speed < 0)speed = 0;
+			this_thread::sleep_for(1s);
+		}
+	}
 	void control()
 	{
 		char key = 0;
@@ -226,10 +275,22 @@ public:
 				else if (driver_inside)shutdown();
 				else shutdown();
 				break;
+			case 'W':
+			case 'w':
+				accelerate();
+				break;
+			case 'S':
+			case 's':
+				slow_down();
+				break;
 			case Escape:
+				speed = 0;
 				shutdown();
 				get_out();
 			}
+			if (speed < 0)speed = 0;
+			if (speed == 0 && car_threads.free_wheeling_thread.joinable())
+				car_threads.free_wheeling_thread.join();
 			if (tank.get_fuel_level() == 0 && engine.started())shutdown();
 		} while (key != Escape);
 	}
